@@ -1,3 +1,4 @@
+import shlex
 from importlib import resources
 from importlib.resources.abc import Traversable
 from types import MappingProxyType
@@ -110,19 +111,28 @@ def install(
             dest=f"{DOWNLOAD_DIR}/{vmutils_archive}",
         )
 
+        # files.unarchive/files.move hard-fail if their src/dest doesn't already
+        # exist per a fact check, and that check runs when pyinfra builds its
+        # change-detection preview (i.e. before any operation's commands have
+        # actually executed) unless the deploy is run with `-y`. That makes them
+        # unsafe here: the archives/binaries are created earlier in this very run.
+        # server.shell has no such pre-check, so use raw commands instead.
         server.shell(
             name="Unarchive VictoriaMetrics and vmalert release binaries",
             commands=[
-                f"tar -xvf {DOWNLOAD_DIR}/{vm_archive} -C {DOWNLOAD_DIR}",
-                f"tar -xvf {DOWNLOAD_DIR}/{vmutils_archive} -C {DOWNLOAD_DIR}",
+                f"tar -xvf {shlex.quote(f'{DOWNLOAD_DIR}/{vm_archive}')} -C {shlex.quote(DOWNLOAD_DIR)}",
+                f"tar -xvf {shlex.quote(f'{DOWNLOAD_DIR}/{vmutils_archive}')} -C {shlex.quote(DOWNLOAD_DIR)}",
             ],
         )
+
+        def move_binary(src_name: str, dest: str) -> str:
+            return f"mv {shlex.quote(f'{DOWNLOAD_DIR}/{src_name}')} {shlex.quote(dest)}"
 
         server.shell(
             name="Copy VictoriaMetrics and vmalert binaries",
             commands=[
-                f"mv {DOWNLOAD_DIR}/victoria-metrics-prod {VM_BINARY_PATH}",
-                f"mv {DOWNLOAD_DIR}/vmalert-prod {VMALERT_BINARY_PATH}",
+                move_binary("victoria-metrics-prod", VM_BINARY_PATH),
+                move_binary("vmalert-prod", VMALERT_BINARY_PATH),
             ],
         )
 
