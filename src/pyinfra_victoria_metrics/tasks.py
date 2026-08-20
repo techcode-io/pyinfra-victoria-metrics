@@ -83,10 +83,11 @@ def install(
         present=True,
     )
 
-    if (
+    binaries_changed = (
         host.get_fact(VictoriaMetricsVersion) != version
         or host.get_fact(VMAlertVersion) != version
-    ):
+    )
+    if binaries_changed:
         files.directory(
             name="Prepare local download path",
             path=DOWNLOAD_DIR,
@@ -127,7 +128,7 @@ def install(
 
         files.directory(name="Clear download path", path=DOWNLOAD_DIR, present=False)
 
-    files.template(
+    vm_unit = files.template(
         name="Copy VictoriaMetrics systemd unit file",
         src=str(_VM_TEMPLATE),
         dest=VM_UNIT_PATH,
@@ -139,7 +140,7 @@ def install(
         else DEFAULT_SERVICE_ARGS,
     )
 
-    files.template(
+    vmalert_unit = files.template(
         name="Copy vmalert systemd unit file",
         src=str(_VMALERT_TEMPLATE),
         dest=VMALERT_UNIT_PATH,
@@ -152,14 +153,39 @@ def install(
 
     systemd.daemon_reload(name="Reload systemd daemon")
 
-    for service in ("victoria-metrics", "vmalert"):
-        systemd.service(
-            name=f"Restart and enable the {service} service",
-            service=f"{service}.service",
-            running=True,
-            restarted=True,
-            enabled=True,
-        )
+    systemd.service(
+        name="Restart and enable the victoria-metrics service",
+        service="victoria-metrics.service",
+        running=True,
+        restarted=binaries_changed or vm_unit.changed,
+        enabled=True,
+    )
+
+    systemd.service(
+        name="Restart and enable the vmalert service",
+        service="vmalert.service",
+        running=True,
+        restarted=binaries_changed or vmalert_unit.changed,
+        enabled=True,
+    )
+
+
+@deploy("Restart the VictoriaMetrics service")
+def restart_victoria_metrics(restart: bool = True):
+    systemd.service(
+        name="Restart the victoria-metrics service",
+        service="victoria-metrics.service",
+        restarted=restart,
+    )
+
+
+@deploy("Restart the vmalert service")
+def restart_vmalert(restart: bool = True):
+    systemd.service(
+        name="Restart the vmalert service",
+        service="vmalert.service",
+        restarted=restart,
+    )
 
 
 @deploy("Uninstall VictoriaMetrics and vmalert")

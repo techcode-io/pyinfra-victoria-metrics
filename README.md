@@ -171,14 +171,59 @@ install(
 )
 ```
 
-| Function               | Parameter              | Default                        | Description                                           |
-|------------------------|------------------------|--------------------------------|-------------------------------------------------------|
-| `install`, `uninstall` | `system_user`          | `victoria-metrics`             | System user running both services                     |
-| `install`, `uninstall` | `system_group`         | `victoria-metrics`             | System group running both services                    |
-| `install`              | `version`              | `v1.150.0`                     | VictoriaMetrics/vmalert release version to download   |
-| `install`              | `max_open_files`       | `2097152`                      | `LimitNOFILE` set on the VictoriaMetrics systemd unit |
-| `install`              | `service_args`         | `DEFAULT_SERVICE_ARGS`         | Dict of `-flag: value` passed to `victoria-metrics`   |
-| `install`              | `vmalert_service_args` | `DEFAULT_VMALERT_SERVICE_ARGS` | Dict of `-flag: value` passed to `vmalert`            |
+| Function                   | Parameter              | Default                        | Description                                           |
+|----------------------------|------------------------|--------------------------------|-------------------------------------------------------|
+| `install`, `uninstall`     | `system_user`          | `victoria-metrics`             | System user running both services                     |
+| `install`, `uninstall`     | `system_group`         | `victoria-metrics`             | System group running both services                    |
+| `install`                  | `version`              | `v1.150.0`                     | VictoriaMetrics/vmalert release version to download   |
+| `install`                  | `max_open_files`       | `2097152`                      | `LimitNOFILE` set on the VictoriaMetrics systemd unit |
+| `install`                  | `service_args`         | `DEFAULT_SERVICE_ARGS`         | Dict of `-flag: value` passed to `victoria-metrics`   |
+| `install`                  | `vmalert_service_args` | `DEFAULT_VMALERT_SERVICE_ARGS` | Dict of `-flag: value` passed to `vmalert`            |
+| `restart_victoria_metrics` | `restart`              | `True`                         | Restart `victoria-metrics` when truthy                |
+| `restart_vmalert`          | `restart`              | `True`                         | Restart `vmalert` when truthy                         |
+
+### Restarting on scrape/rule config changes
+
+`install()` restarts a service on its own when the binary was upgraded or its systemd unit changed, but it has no
+visibility into the scrape/rule *content* your own project deploys (see below) — the usual flow is `install()` once,
+then deploy your config, then call the matching restart shortcut.
+`restart_victoria_metrics()` / `restart_vmalert()` just restart their service; pass `restart=` wired to the `.changed`
+result of whatever operation writes the config file so the restart only fires when that file actually changed:
+
+```python
+from pyinfra.operations import files
+from pyinfra_victoria_metrics import (
+    DEFAULT_SYSTEM_GROUP,
+    install,
+    restart_victoria_metrics,
+    restart_vmalert,
+)
+
+install(
+    service_args={"promscrape.config": "/etc/victoria-metrics/scrape.yaml"},
+    vmalert_service_args={"rule": "/etc/victoria-metrics/rules.yml"},
+)
+
+# scrape.yaml can carry scrape credentials (bearer tokens, basic auth), so restrict it to the
+# service group install() just created.
+scrape_config = files.put(
+    name="Deploy VictoriaMetrics scrape config",
+    src="scrape.yaml",
+    dest="/etc/victoria-metrics/scrape.yaml",
+    group=DEFAULT_SYSTEM_GROUP,
+    mode="640",
+)
+rules_config = files.put(
+    name="Deploy vmalert rules",
+    src="rules.yml",
+    dest="/etc/victoria-metrics/rules.yml",
+    group=DEFAULT_SYSTEM_GROUP,
+    mode="640",
+)
+
+restart_victoria_metrics(restart=scrape_config.changed)
+restart_vmalert(restart=rules_config.changed)
+```
 
 ### Examples of scrape/rule config
 

@@ -7,6 +7,8 @@ from pyinfra_victoria_metrics.tasks import (
     DEFAULT_VERSION,
     DEFAULT_VMALERT_SERVICE_ARGS,
     install,
+    restart_victoria_metrics,
+    restart_vmalert,
     uninstall,
 )
 
@@ -20,5 +22,7 @@ __all__ = [
     "VMAlertVersion",
     "VictoriaMetricsVersion",
     "install",
+    "restart_victoria_metrics",
+    "restart_vmalert",
     "uninstall",
 ]

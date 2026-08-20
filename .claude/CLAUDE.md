@@ -34,14 +34,21 @@ Always invoke tools through `uv run <tool>` (or the `poe` tasks above). Do not c
 
 Source lives under `src/pyinfra_victoria_metrics/` (src layout, `uv_build` backend):
 
-- **`tasks.py`** — the two public deploy functions, `install()` and `uninstall()`. `install()` is
-  idempotent and does everything in one call: creates the shared system user/group, ensures the
-  storage directory, downloads/installs both the `victoria-metrics` and `vmalert` `linux-amd64`
-  binaries (only when needed — see below), renders both systemd units from the bundled Jinja
-  templates, and enables/starts both services. `uninstall()` reverses all of it *except* the
-  storage directory — data is intentionally left behind so an uninstall doesn't destroy metrics.
-  Deliberately *not* split into separate install/configure steps, same reasoning as
-  pyinfra-node-exporter.
+- **`tasks.py`** — the public deploy functions: `install()`, `uninstall()`,
+  `restart_victoria_metrics()`, and `restart_vmalert()`. `install()` is idempotent and does
+  everything in one call: creates the shared system user/group, ensures the storage directory,
+  downloads/installs both the `victoria-metrics` and `vmalert` `linux-amd64` binaries (only when
+  needed — see below), renders both systemd units from the bundled Jinja templates, and
+  enables/starts both services, restarting each only when its binary was upgraded or its rendered
+  unit changed. `install()` has no visibility into the scrape/rule *content* the caller's own
+  project deploys separately (out of scope by design — see below); the expected flow is `install()`
+  once — which also leaves the `victoria-metrics` system group in place for the caller's config
+  deploy to `chown` its files to — then deploy that config, then call
+  `restart_victoria_metrics(restart=...)` / `restart_vmalert(restart=...)` wired to the `.changed`
+  result of that config deploy, so the restart only fires when the config actually changed — see
+  README. `uninstall()` reverses all of it *except* the storage directory — data is intentionally
+  left behind so an uninstall doesn't destroy metrics. Deliberately *not* split into separate
+  install/configure steps otherwise, same reasoning as pyinfra-node-exporter.
 - **`facts.py`** — `VictoriaMetricsVersion` and `VMAlertVersion`, pyinfra `FactBase`s that run
   `<binary> --version` and parse the installed version, each gated by `requires_command` so they
   return `None` cleanly when the binary isn't present yet. Also owns `VM_BINARY_PATH` /
