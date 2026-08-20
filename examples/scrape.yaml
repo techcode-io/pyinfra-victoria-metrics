@@ -1,0 +1,21 @@
+# Example VictoriaMetrics scrape config (-promscrape.config).
+#
+# This file is NOT deployed by pyinfra-victoria-metrics — the library deliberately doesn't manage
+# scrape/rule content (see README "How to customize the install"). Deploy something like this
+# yourself (eg via files.put()/files.template() in your own pyinfra project) and point
+# `service_args["promscrape.config"]` at it.
+scrape_configs:
+  - job_name: node_exporter
+    static_configs:
+      - targets:
+          - http://localhost:9100
+
+  - job_name: vmalert
+    static_configs:
+      - targets:
+          - http://localhost:8880/metrics
+
+  - job_name: alertmanager
+    static_configs:
+      - targets:
+          - http://localhost:9093/metrics
