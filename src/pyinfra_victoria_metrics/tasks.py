@@ -20,7 +20,7 @@ VMALERT_UNIT_PATH: Final[str] = "/etc/systemd/system/vmalert.service"
 STORAGE_DIR: Final[str] = "/var/lib/victoria-metrics"
 DOWNLOAD_DIR: Final[str] = "/tmp/victoria-metrics"
 
-DEFAULT_VERSION: Final[str] = "v1.150.0"
+DEFAULT_VERSION: Final[str] = "v1.151.0"
 DEFAULT_SYSTEM_USER: Final[str] = "victoria-metrics"
 DEFAULT_SYSTEM_GROUP: Final[str] = "victoria-metrics"
 DEFAULT_MAX_OPEN_FILES: Final[int] = 2097152

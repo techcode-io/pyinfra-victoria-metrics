@@ -158,7 +158,7 @@ from pyinfra_victoria_metrics import (
 )
 
 install(
-    version="v1.150.0",
+    version="v1.151.0",
     system_user="victoria-metrics",
     service_args={
         **DEFAULT_SERVICE_ARGS,
@@ -175,7 +175,7 @@ install(
 |----------------------------|------------------------|--------------------------------|-------------------------------------------------------|
 | `install`, `uninstall`     | `system_user`          | `victoria-metrics`             | System user running both services                     |
 | `install`, `uninstall`     | `system_group`         | `victoria-metrics`             | System group running both services                    |
-| `install`                  | `version`              | `v1.150.0`                     | VictoriaMetrics/vmalert release version to download   |
+| `install`                  | `version`              | `v1.151.0`                     | VictoriaMetrics/vmalert release version to download   |
 | `install`                  | `max_open_files`       | `2097152`                      | `LimitNOFILE` set on the VictoriaMetrics systemd unit |
 | `install`                  | `service_args`         | `DEFAULT_SERVICE_ARGS`         | Dict of `-flag: value` passed to `victoria-metrics`   |
 | `install`                  | `vmalert_service_args` | `DEFAULT_VMALERT_SERVICE_ARGS` | Dict of `-flag: value` passed to `vmalert`            |
